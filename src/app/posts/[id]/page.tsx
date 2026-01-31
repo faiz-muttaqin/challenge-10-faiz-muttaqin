@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -17,7 +17,8 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { Alert, AlertDescription } from "@/ui/alert";
 import { Heart, MessageCircle, Trash2, Edit, AlertCircle } from "lucide-react";
 
-export default function PostDetailPage({ params }: { params: { id: string } }) {
+export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -30,8 +31,8 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
     const loadPost = async () => {
       try {
         const [postData, commentsData] = await Promise.all([
-          getPostById(params.id),
-          getPostComments(params.id),
+          getPostById(id),
+          getPostComments(id),
         ]);
         setPost(postData);
         setComments(commentsData);
@@ -43,7 +44,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
     };
 
     loadPost();
-  }, [params.id]);
+  }, [id]);
 
   const handleLike = async () => {
     if (!token || !post) return;
@@ -66,7 +67,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
 
     setSubmitting(true);
     try {
-      const comment = await createComment(params.id, { content: newComment }, token);
+      const comment = await createComment(id, { content: newComment }, token);
       setComments([...comments, comment]);
       setNewComment("");
     } catch (err) {
@@ -85,6 +86,13 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
     } catch (err) {
       console.error("Failed to delete comment:", err);
     }
+  };
+
+  // Format content to add line breaks before bullet points
+  const formatContent = (content: string) => {
+    return content
+      .replace(/•/g, '<br>•')
+      .replace(/^<br>/, ''); // Remove leading <br> if content starts with bullet
   };
 
   if (loading) {
@@ -166,10 +174,10 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Cover Image */}
-        {post.coverImage && (
+        {post.imageUrl && (
           <div className="relative aspect-21/9 w-full overflow-hidden rounded-lg mb-8">
             <Image
-              src={post.coverImage}
+              src={post.imageUrl}
               alt={post.title}
               fill
               className="object-cover"
@@ -180,7 +188,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
 
         {/* Content */}
         <div className="prose prose-lg dark:prose-invert max-w-none mb-12">
-          <div dangerouslySetInnerHTML={{ __html: post.content }} />
+          <div dangerouslySetInnerHTML={{ __html: formatContent(post.content) }} />
         </div>
 
         <Separator className="my-8" />

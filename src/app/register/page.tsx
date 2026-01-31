@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { register } from "@/lib/api";
-import { setAuthToken } from "@/lib/auth";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
@@ -74,10 +73,9 @@ export default function RegisterPage() {
     try {
       // Remove confirmPassword before sending to API
       const { confirmPassword, ...registerData } = formData;
-      const response = await register(registerData);
-      setAuthToken(response.token);
-      router.push("/");
-      router.refresh();
+      await register(registerData);
+      // Redirect to login page after successful registration
+      router.push("/login?registered=true");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
     } finally {

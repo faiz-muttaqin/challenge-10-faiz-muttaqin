@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { getUserByUsername, getPostsByUsername } from "@/lib/api";
 import type { Post, User } from "@/types/blog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/ui/avatar";
@@ -10,7 +10,8 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 import { Alert, AlertDescription } from "@/ui/alert";
 import { AlertCircle, Mail } from "lucide-react";
 
-export default function UserProfilePage({ params }: { params: { username: string } }) {
+export default function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = use(params);
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,8 +19,8 @@ export default function UserProfilePage({ params }: { params: { username: string
 
   useEffect(() => {
     Promise.all([
-      getUserByUsername(params.username),
-      getPostsByUsername(params.username),
+      getUserByUsername(username),
+      getPostsByUsername(username),
     ])
       .then(([userData, postsData]) => {
         setUser(userData);
@@ -31,7 +32,7 @@ export default function UserProfilePage({ params }: { params: { username: string
       .finally(() => {
         setLoading(false);
       });
-  }, [params.username]);
+  }, [username]);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -56,14 +57,15 @@ export default function UserProfilePage({ params }: { params: { username: string
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row items-start gap-6">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={user.avatar} alt={user.username} />
+                <AvatarImage src={user.avatarUrl} alt={user.name} />
                 <AvatarFallback className="text-2xl">
-                  {user.username.slice(0, 2).toUpperCase()}
+                  {user.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-2">@{user.username}</h1>
+                <h1 className="text-3xl font-bold mb-2">{user.name}</h1>
+                <p className="text-muted-foreground mb-2">@{user.username}</p>
                 
                 {user.email && (
                   <p className="text-muted-foreground flex items-center gap-2 mb-4">
@@ -72,8 +74,8 @@ export default function UserProfilePage({ params }: { params: { username: string
                   </p>
                 )}
 
-                {user.bio && (
-                  <p className="text-muted-foreground mb-4">{user.bio}</p>
+                {user.headline && (
+                  <p className="text-muted-foreground mb-4">{user.headline}</p>
                 )}
 
                 <div className="flex gap-4 text-sm">

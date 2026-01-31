@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getPostById, updatePost, deletePost } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
@@ -26,14 +26,15 @@ import { AlertCircle, ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { LoadingSpinner } from "@/components/loading-spinner";
 
-export default function EditPostPage({ params }: { params: { id: string } }) {
+export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     excerpt: "",
-    coverImage: "",
+    imageUrl: "",
     tags: "",
   });
   const [loading, setLoading] = useState(true);
@@ -48,14 +49,14 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
       return;
     }
 
-    getPostById(params.id)
+    getPostById(id)
       .then((postData) => {
         setPost(postData);
         setFormData({
           title: postData.title,
           content: postData.content,
           excerpt: postData.excerpt || "",
-          coverImage: postData.coverImage || "",
+          imageUrl: postData.imageUrl || "",
           tags: postData.tags?.join(", ") || "",
         });
       })
@@ -65,7 +66,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
       .finally(() => {
         setLoading(false);
       });
-  }, [params.id, router]);
+  }, [id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,12 +84,12 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
         title: formData.title,
         content: formData.content,
         excerpt: formData.excerpt || undefined,
-        coverImage: formData.coverImage || undefined,
+        imageUrl: formData.imageUrl || undefined,
         tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()) : undefined,
       };
 
-      await updatePost(params.id, postData, token);
-      router.push(`/posts/${params.id}`);
+      await updatePost(id, postData, token);
+      router.push(`/posts/${id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update post");
     } finally {
@@ -102,7 +103,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
 
     setDeleting(true);
     try {
-      await deletePost(params.id, token);
+      await deletePost(id, token);
       router.push("/profile");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete post");
@@ -130,7 +131,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
       <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <Button variant="ghost" asChild>
-            <Link href={`/posts/${params.id}`}>
+            <Link href={`/posts/${id}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to post
             </Link>
@@ -214,13 +215,13 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="coverImage">Cover Image URL</Label>
+                <Label htmlFor="imageUrl">Cover Image URL</Label>
                 <Input
-                  id="coverImage"
+                  id="imageUrl"
                   type="url"
                   placeholder="https://example.com/image.jpg"
-                  value={formData.coverImage}
-                  onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                   disabled={saving}
                 />
               </div>
@@ -244,7 +245,7 @@ export default function EditPostPage({ params }: { params: { id: string } }) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => router.push(`/posts/${params.id}`)}
+                  onClick={() => router.push(`/posts/${id}`)}
                   disabled={saving}
                 >
                   Cancel

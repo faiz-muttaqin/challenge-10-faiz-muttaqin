@@ -193,9 +193,11 @@
 export interface User {
   id: string;
   username: string;
+  name: string;
   email?: string;
-  bio?: string;
+  headline?: string;
   avatar?: string;
+  avatarUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -231,7 +233,8 @@ export interface Post {
   content: string;
   excerpt?: string;
   slug?: string;
-  coverImage?: string;
+  imageUrl?: string;
+  imagePublicId?: string;
   authorId: string;
   author: User;
   likesCount: number;
@@ -246,7 +249,7 @@ export interface CreatePostData {
   title: string;
   content: string;
   excerpt?: string;
-  coverImage?: string;
+  imageUrl?: string;
   tags?: string[];
 }
 
@@ -254,7 +257,7 @@ export interface UpdatePostData {
   title?: string;
   content?: string;
   excerpt?: string;
-  coverImage?: string;
+  imageUrl?: string;
   tags?: string[];
 }
 

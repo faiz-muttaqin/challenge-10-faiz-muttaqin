@@ -48,6 +48,14 @@ async function fetchAPI<T>(
     });
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - clear token and redirect to login
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken');
+          window.location.href = '/login';
+        }
+      }
+      
       const error = await response.json().catch(() => ({
         message: response.statusText,
       }));
@@ -92,21 +100,44 @@ export async function getUserById(id: string): Promise<User> {
 }
 
 export async function updateProfile(
-  data: Partial<User>,
+  data: FormData,
   token: string
 ): Promise<User> {
-  return fetchAPI<User>("/users/profile", {
-    method: "PATCH",
-    body: JSON.stringify(data),
-    token,
-  });
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/profile`, {
+      method: "PATCH",
+      headers,
+      body: data,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken');
+          window.location.href = '/login';
+        }
+      }
+      const error = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(error.message || `API Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("API Fetch Error:", error);
+    throw error;
+  }
 }
 
 export async function updatePassword(
-  data: { oldPassword: string; newPassword: string },
+  data: { currentPassword: string; newPassword: string; confirmPassword: string },
   token: string
-): Promise<void> {
-  return fetchAPI<void>("/users/password", {
+): Promise<{ message: string }> {
+  return fetchAPI<{ message: string }>("/users/password", {
     method: "PATCH",
     body: JSON.stringify(data),
     token,
@@ -115,9 +146,9 @@ export async function updatePassword(
 
 // ==================== Posts API ====================
 
-export async function getRecommendedPosts(): Promise<Post[]> {
-  const response = await fetchAPI<{ data: Post[] } | Post[]>("/posts/recommended");
-  return Array.isArray(response) ? response : response.data;
+export async function getRecommendedPosts(page: number = 1, limit: number = 10): Promise<{ data: Post[]; total: number; page: number; lastPage: number }> {
+  const response = await fetchAPI<{ data: Post[]; total: number; page: number; lastPage: number }>(`/posts/recommended?page=${page}&limit=${limit}`);
+  return response;
 }
 
 export async function getMostLikedPosts(): Promise<Post[]> {
@@ -125,9 +156,8 @@ export async function getMostLikedPosts(): Promise<Post[]> {
   return Array.isArray(response) ? response : response.data;
 }
 
-export async function getMyPosts(token: string): Promise<Post[]> {
-  const response = await fetchAPI<{ data: Post[] } | Post[]>("/posts/my-posts", { token });
-  return Array.isArray(response) ? response : response.data;
+export async function getMyPosts(token: string, page: number = 1, limit: number = 10): Promise<{ data: Post[]; total: number; page: number; lastPage: number }> {
+  return fetchAPI<{ data: Post[]; total: number; page: number; lastPage: number }>(`/posts/my-posts?page=${page}&limit=${limit}`, { token });
 }
 
 export async function searchPosts(query: string): Promise<Post[]> {
@@ -150,14 +180,37 @@ export async function getPostsByUserId(userId: string): Promise<Post[]> {
 }
 
 export async function createPost(
-  data: CreatePostData,
+  data: FormData,
   token: string
 ): Promise<Post> {
-  return fetchAPI<Post>("/posts", {
-    method: "POST",
-    body: JSON.stringify(data),
-    token,
-  });
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/posts`, {
+      method: "POST",
+      headers,
+      body: data,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken');
+          window.location.href = '/login';
+        }
+      }
+      const error = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(error.message || `API Error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("API Fetch Error:", error);
+    throw error;
+  }
 }
 
 export async function updatePost(
